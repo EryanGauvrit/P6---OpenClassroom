@@ -55,16 +55,19 @@ exports.modifySauce = (req, res, next) => {
     ...JSON.parse(req.body.sauce),
     imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`,
   } : {...req.body};
-
+  
   delete sauceObject._id;
   Sauce.findOne({_id: req.params.id})
       .then ((sauce) => {
         if (sauce.userId != req.auth.userId){
           res.status(401).json({message : 'Not authorized'});
         } else {
-          Sauce.updateOne({ _id: req.params.id}, { ...sauceObject, _id: req.params.id})
+          const filename = sauce.imageUrl.split('/images')[1];
+          fs.unlink(`images/${filename}`, () => {
+            Sauce.updateOne({ _id: req.params.id}, { ...sauceObject, _id: req.params.id})
               .then(() => res.status(200).json({message : 'Sauce modifiée!'}))
               .catch(error => res.status(401).json({ error }));
+          })
         }
       })
       .catch((error) => {
